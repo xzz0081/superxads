@@ -108,5 +108,25 @@
     "height": 252.5,
     "transform": "translate(426.25px, -3.75px)",
     "timestamp": "2024-11-13T12:38:07.644Z"
+  },
+  {
+    "src": "http://localhost:3000/uploads/image-1731502542735-820145161.png",
+    "position": {
+      "x": 146.25,
+      "y": 263.75
+    },
+    "width": 153.75,
+    "height": 61.25,
+    "timestamp": "2024-11-13T12:56:02.996Z"
+  },
+  {
+    "src": "http://localhost:3000/uploads/image-1731502765763-428096501.png",
+    "position": {
+      "x": 13.333343505859375,
+      "y": 260
+    },
+    "width": 226.64581298828125,
+    "height": 135.3125,
+    "timestamp": "2024-11-13T12:59:39.914Z"
   }
 ]

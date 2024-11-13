@@ -35,7 +35,7 @@
             <h3 class="preview-title">首页广告位预览</h3>
             <div class="preview-container">
                 <div class="ad-content">
-                    <!-- 显示已发布的广告 -->
+                    <!-- 显示已发布的广告，使用与首页完全相同的样式和定位 -->
                     <div v-for="(ad, index) in publishedAds" 
                          :key="'published-' + index" 
                          class="ad-item published"
@@ -45,6 +45,7 @@
                              top: ad.position.y + 'px',
                              width: ad.width + 'px',
                              height: ad.height + 'px',
+                             transform: ad.transform || '',
                              opacity: 0.6
                          }">
                         <img :src="getFullImageUrl(ad.src)" 
@@ -313,27 +314,14 @@ export default {
                 }
 
                 const lastIndex = uploadedImages.value.length - 1;
-                const imageElement = document.getElementById(`uploadedImage${lastIndex}`);
-                const container = document.querySelector('.ad-content');
-
-                if (!imageElement || !container) {
-                    throw new Error('无法获取图片或容器元素');
-                }
-
-                const rect = imageElement.getBoundingClientRect();
-                const containerRect = container.getBoundingClientRect();
-
-                const position = {
-                    x: rect.left - containerRect.left,
-                    y: rect.top - containerRect.top
-                };
+                const currentImage = uploadedImages.value[lastIndex];
 
                 const adData = {
-                    src: uploadedImages.value[lastIndex].src,
-                    position: position,
-                    width: rect.width,
-                    height: rect.height,
-                    transform: uploadedImages.value[lastIndex].transform,
+                    src: currentImage.src,
+                    position: currentImage.position,
+                    width: currentImage.width,
+                    height: currentImage.height,
+                    transform: currentImage.transform,
                     timestamp: new Date().toISOString()
                 };
 
@@ -653,7 +641,6 @@ body {
     align-items: center;
     justify-content: center;
     background-color: #000;
-    min-height: 500px;
 }
 
 .ad-item {
@@ -668,8 +655,6 @@ body {
 
 .ad-item.current {
     z-index: 10;
-    touch-action: none;
-    border: 2px solid #fff;
 }
 
 .uploaded-image {
