@@ -34,8 +34,8 @@
         <div v-if="showAdSimulation" class="preview-section">
             <h3 class="preview-title">首页广告位预览</h3>
             <div class="preview-container">
-                <div class="ad-content">
-                    <!-- 显示已发布的广告，使用与首页完全相同的样式和定位 -->
+                <div class="ad-content" style="width: 100%; height: calc(100vh - 70px);">
+                    <!-- 显示已发布的广告 -->
                     <div v-for="(ad, index) in publishedAds" 
                          :key="'published-' + index" 
                          class="ad-item published"
@@ -45,7 +45,6 @@
                              top: ad.position.y + 'px',
                              width: ad.width + 'px',
                              height: ad.height + 'px',
-                             transform: ad.transform || '',
                              opacity: 0.6
                          }">
                         <img :src="getFullImageUrl(ad.src)" 
@@ -102,6 +101,11 @@ export default {
         const clearCanvas = () => {
             showAdSimulation.value = false;
             uploadedImages.value = [];
+            // 清空文件输入
+            const fileInput = document.getElementById('file-upload');
+            if (fileInput) {
+                fileInput.value = '';
+            }
         };
 
         const handleImageUpload = async (event) => {
@@ -109,11 +113,6 @@ export default {
             const files = input.files;
             
             if (files && files.length > 0) {
-                if (uploadedImages.value.some(image => !image.fixed)) {
-                    alert('请先固定当前图片的位置，然后再上传下一张图片。');
-                    return;
-                }
-
                 try {
                     const file = files[0];
                     const formData = new FormData();
@@ -126,6 +125,7 @@ export default {
                     
                     const result = await response.json();
                     
+                    // 添加新图片到数组
                     uploadedImages.value.push({
                         src: result.url,
                         fixed: false,
@@ -137,6 +137,10 @@ export default {
                     showAdSimulation.value = true;
                     await nextTick();
                     initializeInteract();
+                    updateFixButtonPosition(uploadedImages.value.length - 1);
+                    
+                    // 清空文件输入，允许再次上传
+                    event.target.value = '';
                 } catch (err) {
                     alert(err.message || "图片上传失败，请重试");
                 }
@@ -209,6 +213,9 @@ export default {
                 parent.style.width = event.rect.width + 'px';
                 parent.style.height = event.rect.height + 'px';
             }
+
+            // 更新固定按钮位置
+            updateFixButtonPosition(index);
         };
 
         function dragMoveListener(event, index) {
@@ -218,82 +225,143 @@ export default {
             const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
             const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
 
-            // 更新元素的位置
-            target.setAttribute('data-x', x);
-            target.setAttribute('data-y', y);
-            
-            // 更新图片数据
-            uploadedImages.value[index].position = { x, y };
-
-            // 更新父元素的位置
+            // 临时更新位置以检查重叠
             const parent = target.parentElement;
-            if (parent) {
-                parent.style.left = x + 'px';
-                parent.style.top = y + 'px';
+            const originalLeft = parent.style.left;
+            const originalTop = parent.style.top;
+            
+            parent.style.left = x + 'px';
+            parent.style.top = y + 'px';
+
+            // 检查重叠
+            if (isOverlapping(parent, index)) {
+                // 如果重叠，找到最近的可用位置
+                const nearestPosition = findNearestValidPosition(parent, x, y, index);
+                parent.style.left = nearestPosition.x + 'px';
+                parent.style.top = nearestPosition.y + 'px';
+                
+                // 更新数据
+                target.setAttribute('data-x', nearestPosition.x);
+                target.setAttribute('data-y', nearestPosition.y);
+                uploadedImages.value[index].position = { x: nearestPosition.x, y: nearestPosition.y };
+            } else {
+                // 如果没有重叠，正常更新位置
+                target.setAttribute('data-x', x);
+                target.setAttribute('data-y', y);
+                uploadedImages.value[index].position = { x, y };
             }
         }
 
-        const isOverlapping = (target, index, width = null, height = null) => {
-            if (!target) return false;
+        const findNearestValidPosition = (element, x, y, index) => {
+            const step = 10; // 每次检查的步长
+            const maxAttempts = 50; // 最大尝试次数
+            const directions = [
+                { dx: 1, dy: 0 },   // 右
+                { dx: -1, dy: 0 },  // 左
+                { dx: 0, dy: 1 },   // 下
+                { dx: 0, dy: -1 },  // 上
+                { dx: 1, dy: 1 },   // 右下
+                { dx: -1, dy: 1 },  // 左下
+                { dx: 1, dy: -1 },  // 右上
+                { dx: -1, dy: -1 }  // 左上
+            ];
 
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                for (const dir of directions) {
+                    const testX = x + dir.dx * step * attempt;
+                    const testY = y + dir.dy * step * attempt;
+
+                    // 检查位置是否在容器
+                    if (isWithinBounds(testX, testY, element)) {
+                        element.style.left = testX + 'px';
+                        element.style.top = testY + 'px';
+
+                        if (!isOverlapping(element, index)) {
+                            return { x: testX, y: testY };
+                        }
+                    }
+                }
+            }
+
+            // 如果找不到合适的位置，返回原始位置
+            return { x, y };
+        };
+
+        const isWithinBounds = (x, y, element) => {
             const container = document.querySelector('.ad-content');
             if (!container) return false;
 
-            try {
-                const targetRect = target.getBoundingClientRect();
-                const containerRect = container.getBoundingClientRect();
+            const containerRect = container.getBoundingClientRect();
+            const elementRect = element.getBoundingClientRect();
 
-                // 使用提供的宽度和高度，或者使用当前元素的尺寸
-                const testRect = {
-                    left: targetRect.left - containerRect.left,
-                    top: targetRect.top - containerRect.top,
-                    right: targetRect.left - containerRect.left + (width || targetRect.width),
-                    bottom: targetRect.top - containerRect.top + (height || targetRect.height)
+            return x >= 0 &&
+                   y >= 0 &&
+                   x + elementRect.width <= containerRect.width &&
+                   y + elementRect.height <= containerRect.height;
+        };
+
+        const isOverlapping = (element, index) => {
+            if (!element) return false;
+
+            const elementRect = element.getBoundingClientRect();
+            const container = document.querySelector('.ad-content');
+            if (!container) return false;
+
+            const containerRect = container.getBoundingClientRect();
+            const currentRect = {
+                left: elementRect.left - containerRect.left,
+                right: elementRect.right - containerRect.left,
+                top: elementRect.top - containerRect.top,
+                bottom: elementRect.bottom - containerRect.top
+            };
+
+            // 检查与已发布广告的重叠，允许边缘接触
+            const publishedOverlap = publishedAds.value.some(ad => {
+                const adRect = {
+                    left: ad.position.x,
+                    right: ad.position.x + ad.width,
+                    top: ad.position.y,
+                    bottom: ad.position.y + ad.height
                 };
 
-                // 检查与已发布广告的重叠
-                const publishedOverlap = publishedAds.value.some(ad => {
-                    if (!ad.position) return false;
-                    return !(testRect.right < ad.position.x ||
-                            testRect.left > ad.position.x + (ad.width || 0) ||
-                            testRect.bottom < ad.position.y ||
-                            testRect.top > ad.position.y + (ad.height || 0));
-                });
+                // 允许边缘接触，但不允许重叠
+                return !(currentRect.right <= adRect.left ||
+                        currentRect.left >= adRect.right ||
+                        currentRect.bottom <= adRect.top ||
+                        currentRect.top >= adRect.bottom);
+            });
 
-                if (publishedOverlap) return true;
+            if (publishedOverlap) return true;
 
-                // 检查与其他上传图片的重叠
-                return uploadedImages.value.some((image, i) => {
-                    if (i === index || !image.fixed) return false;
-                    
-                    const otherImage = document.getElementById(`uploadedImage${i}`);
-                    if (!otherImage) return false;
+            // 检查与其他已固定图片的重叠
+            return uploadedImages.value.some((image, i) => {
+                if (i === index || !image.fixed) return false;
 
-                    try {
-                        const otherRect = otherImage.getBoundingClientRect();
-                        const other = {
-                            left: otherRect.left - containerRect.left,
-                            top: otherRect.top - containerRect.top,
-                            right: otherRect.left - containerRect.left + otherRect.width,
-                            bottom: otherRect.top - containerRect.top + otherRect.height
-                        };
+                const otherElement = document.getElementById(`uploadedImage${i}`);
+                if (!otherElement) return false;
 
-                        return !(testRect.right < other.left ||
-                                testRect.left > other.right ||
-                                testRect.bottom < other.top ||
-                                testRect.top > other.bottom);
-                    } catch (error) {
-                        console.warn('Error checking overlap for image', i, error);
-                        return false;
-                    }
-                });
-            } catch (error) {
-                console.warn('Error in overlap detection:', error);
-                return false;
-            }
+                const otherParent = otherElement.parentElement;
+                const otherRect = otherParent.getBoundingClientRect();
+                const other = {
+                    left: otherRect.left - containerRect.left,
+                    right: otherRect.right - containerRect.left,
+                    top: otherRect.top - containerRect.top,
+                    bottom: otherRect.bottom - containerRect.top
+                };
+
+                // 允许边缘接触，但不允许重叠
+                return !(currentRect.right <= other.left ||
+                        currentRect.left >= other.right ||
+                        currentRect.bottom <= other.top ||
+                        currentRect.top >= other.bottom);
+            });
         };
 
         const fixImagePosition = (index) => {
+            if (index < 0 || index >= uploadedImages.value.length) {
+                return;
+            }
+            
             uploadedImages.value[index].fixed = true;
             const uploadedImage = document.getElementById(`uploadedImage${index}`);
             if (uploadedImage) {
@@ -303,43 +371,50 @@ export default {
 
         const publishAd = async () => {
             try {
-                if (!uploadedImages.value.length) {
-                    alert("请至少上传一张图片");
+                if (uploadedImages.value.length === 0) {
+                    alert("请先上传图片");
                     return;
                 }
 
+                // 检查是否所有图片都已固定
                 if (uploadedImages.value.some(img => !img.fixed)) {
                     alert("请先固定所有图片的位置");
                     return;
                 }
 
-                const lastIndex = uploadedImages.value.length - 1;
-                const currentImage = uploadedImages.value[lastIndex];
+                // 发布所有未发布的图片
+                for (const image of uploadedImages.value) {
+                    const adData = {
+                        src: image.src,
+                        position: image.position,
+                        width: image.width,
+                        height: image.height,
+                        transform: image.transform,
+                        timestamp: new Date().toISOString()
+                    };
 
-                const adData = {
-                    src: currentImage.src,
-                    position: currentImage.position,
-                    width: currentImage.width,
-                    height: currentImage.height,
-                    transform: currentImage.transform,
-                    timestamp: new Date().toISOString()
-                };
+                    const response = await fetch('http://localhost:3000/api/advertisements', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(adData)
+                    });
 
-                const response = await fetch('http://localhost:3000/api/advertisements', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(adData)
-                });
-
-                if (!response.ok) {
-                    throw new Error('发布失败');
+                    if (!response.ok) {
+                        throw new Error('发布失败');
+                    }
                 }
 
-                alert("广告发布成功！");
+                alert("所有广告发布成功！");
                 clearCanvas();
                 fetchPublishedAds();
+                
+                // 清空文件输入
+                const fileInput = document.getElementById('file-upload');
+                if (fileInput) {
+                    fileInput.value = '';
+                }
             } catch (err) {
                 console.error('发布错误:', err);
                 alert(err.message || "发布失败，请重试");
@@ -364,6 +439,29 @@ export default {
                 console.log('Fetched ads:', data);
             } catch (err) {
                 console.error('获取已发布广告失败:', err);
+            }
+        };
+
+        const updateFixButtonPosition = (index) => {
+            const image = document.getElementById(`uploadedImage${index}`);
+            if (!image) return;
+
+            const button = image.parentElement.querySelector('.fix-button');
+            if (!button) return;
+
+            const imageRect = image.getBoundingClientRect();
+            const minWidth = 100; // 定义最小宽度阈值
+
+            if (imageRect.width < minWidth) {
+                // 如果图片太小，将按钮放在右侧
+                button.style.right = '-80px'; // 按钮宽度 + 间距
+                button.style.bottom = '0';
+                button.style.transform = 'none';
+            } else {
+                // 正常位置
+                button.style.right = '10px';
+                button.style.bottom = '10px';
+                button.style.transform = 'none';
             }
         };
 
@@ -501,15 +599,15 @@ body {
 
 .fix-button {
     position: absolute;
-    bottom: 5px;
-    right: 5px;
     background-color: rgba(40, 167, 69, 0.8);
     color: #fff;
     border: none;
-    padding: 5px;
+    padding: 5px 10px;
+    border-radius: 4px;
     cursor: pointer;
-    border-radius: 5px;
-    font-size: 0.9em;
+    z-index: 11;
+    white-space: nowrap;
+    transition: all 0.3s ease;
 }
 
 .fix-button:hover {
@@ -627,25 +725,27 @@ body {
 /* 新增预览容器样式 */
 .preview-container {
     width: 100%;
-    height: calc(100vh - 70px);
+    height: calc(100vh - 200px);
     position: relative;
     background-color: #000;
-    overflow: hidden;
+    overflow: auto;
+    padding: 20px;
 }
 
 .ad-content {
-    width: 100%;
-    height: 100%;
     position: relative;
+    background-color: #000;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #000;
+    margin: 0 auto;
+    /* 移除固定宽高，使用与首页相同的尺寸 */
 }
 
 .ad-item {
     position: absolute;
     touch-action: none;
+    margin: 1px;
 }
 
 .ad-item.published {
@@ -664,12 +764,13 @@ body {
     cursor: move;
     touch-action: none;
     user-select: none;
+    min-width: 50px;
+    min-height: 50px;
 }
 
+/* 修改固定按钮的样式 */
 .fix-button {
     position: absolute;
-    bottom: 10px;
-    right: 10px;
     background-color: rgba(40, 167, 69, 0.8);
     color: #fff;
     border: none;
@@ -677,140 +778,21 @@ body {
     border-radius: 4px;
     cursor: pointer;
     z-index: 11;
+    white-space: nowrap;
+    transition: all 0.3s ease;
 }
 
-.fix-button:hover {
-    background-color: rgba(33, 136, 56, 0.8);
+/* 根据图片尺寸调整按钮位置的样式 */
+.ad-item.current[style*="width: 100px"] .fix-button,
+.ad-item.current[style*="width: 50px"] .fix-button {
+    right: -80px;
+    bottom: 0;
 }
 
-.clear-canvas-button {
-    margin-top: 10px;
-    background-color: #cc0000;
-    color: #fff;
-    border: none;
-    padding: 5px 15px;
-    cursor: pointer;
-    border-radius: 3px;
-    transition: background-color 0.3s;
-}
-
-.clear-canvas-button:hover {
-    background-color: #990000;
-}
-
-.publish-button {
-    margin-top: 10px;
-    background-color: #007bff;
-    color: #fff;
-    border: none;
-    padding: 5px 15px;
-    cursor: pointer;
-    border-radius: 3px;
-    transition: background-color 0.3s;
-}
-
-.publish-button:hover {
-    background-color: #0056b3;
-}
-
-.published-image {
-    object-fit: cover;
-    border-radius: 5px;
-}
-
-.image-container.published {
-    pointer-events: none;
-}
-
-.image-container.current {
-    z-index: 10;
-}
-
-.preview-title {
-    color: #00ff00;
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-.ad-simulation {
-    width: 1000px;
-    height: 500px;
-    background-color: rgba(0, 0, 0, 0.5);
-    position: relative;
-    margin: 20px auto;
-    overflow: visible;
-    border: 2px solid #fff;
-    min-height: 500px;
-    padding: 20px;
-}
-
-.grid-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
-    pointer-events: none;
-    min-height: 500px;
-}
-
-.grid-cell {
-    border: 1px dashed rgba(255, 255, 255, 0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 1.2em;
-}
-
-.ad-info {
-    position: absolute;
-    top: 5px;
-    left: 5px;
-    background-color: rgba(0, 0, 0, 0.7);
-    color: #fff;
-    padding: 2px 8px;
-    border-radius: 3px;
-    font-size: 0.8em;
-}
-
-.preview-info {
-    margin-top: 20px;
-    color: #00ff00;
-    text-align: center;
-}
-
-/* 添加网格参考线 */
-.ad-simulation {
-    background-image: 
-        linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
-    background-size: 50px 50px;
-}
-
-/* 新增预览容器样式 */
-.preview-container {
-    width: 100%;
-    height: 600px;
-    overflow: auto;
-    position: relative;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 10px;
-    background-color: rgba(0, 0, 0, 0.3);
-    margin: 0 auto;
-    padding: 20px;
-}
-
-.ad-simulation {
-    width: 1000px;
-    height: 500px;
-    background-color: rgba(0, 0, 0, 0.5);
-    position: relative;
-    margin: 0 auto;
-    border: 2px solid #fff;
+/* 正常尺寸图片的按钮位置 */
+.ad-item.current:not([style*="width: 100px"]):not([style*="width: 50px"]) .fix-button {
+    right: 10px;
+    bottom: 10px;
 }
 
 /* 添加提示样式 */
@@ -824,22 +806,27 @@ body {
 
 /* 自定义滚动条样式 */
 .preview-container::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
 }
 
 .preview-container::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.1);
-    border-radius: 5px;
+    border-radius: 6px;
 }
 
 .preview-container::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.3);
-    border-radius: 5px;
+    border-radius: 6px;
+    border: 2px solid rgba(0, 0, 0, 0.2);
 }
 
 .preview-container::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.preview-container::-webkit-scrollbar-corner {
+    background: transparent;
 }
 
 /* 添加拖动提示 */
