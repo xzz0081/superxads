@@ -32,10 +32,54 @@
 
         <!-- 实时预览区 -->
         <div v-if="showAdSimulation" class="preview-section">
-            <div class="ad-simulation" id="adSimulationContainer">
-                <div v-for="(image, index) in uploadedImages" :key="index" class="image-container">
-                    <img :src="image.src" :id="'uploadedImage' + index" class="uploaded-image" />
-                    <button v-if="!image.fixed" :style="{ transform: image.transform }" class="fix-button" @click="fixImagePosition(index)">固定位置</button>
+            <h3 class="preview-title">首页广告位预览</h3>
+            <div class="preview-container">
+                <div class="ad-content">
+                    <!-- 显示已发布的广告 -->
+                    <div v-for="(ad, index) in publishedAds" 
+                         :key="'published-' + index" 
+                         class="ad-item published"
+                         :style="{
+                             position: 'absolute',
+                             left: ad.position.x + 'px',
+                             top: ad.position.y + 'px',
+                             width: ad.width + 'px',
+                             height: ad.height + 'px',
+                             opacity: 0.6
+                         }">
+                        <img :src="getFullImageUrl(ad.src)" 
+                             :style="{
+                                 width: '100%',
+                                 height: '100%',
+                                 objectFit: 'cover'
+                             }" />
+                    </div>
+
+                    <!-- 当前上传的图片 -->
+                    <div v-for="(image, index) in uploadedImages" 
+                         :key="index" 
+                         class="ad-item current"
+                         :style="{
+                             position: 'absolute',
+                             left: (image.position?.x || 0) + 'px',
+                             top: (image.position?.y || 0) + 'px',
+                             width: image.width + 'px',
+                             height: image.height + 'px'
+                         }">
+                        <img :src="image.src" 
+                             :id="'uploadedImage' + index" 
+                             class="uploaded-image"
+                             :style="{
+                                 width: '100%',
+                                 height: '100%',
+                                 objectFit: 'cover'
+                             }" />
+                        <button v-if="!image.fixed" 
+                                class="fix-button" 
+                                @click="fixImagePosition(index)">
+                            固定位置
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -52,6 +96,7 @@ export default {
         const uploadedImages = ref([]);
         const showAdSimulation = ref(false);
         const adCode = ref('');
+        const publishedAds = ref([]);
 
         const clearCanvas = () => {
             showAdSimulation.value = false;
@@ -73,7 +118,7 @@ export default {
                     const formData = new FormData();
                     formData.append('image', file);
                     
-                    const response = await fetch('/api/upload', {
+                    const response = await fetch('http://localhost:3000/api/upload', {
                         method: 'POST',
                         body: formData
                     });
@@ -83,7 +128,7 @@ export default {
                     uploadedImages.value.push({
                         src: result.url,
                         fixed: false,
-                        transform: 'translate(0px, 0px)',
+                        position: { x: 0, y: 0 },
                         width: 500,
                         height: 250
                     });
@@ -101,7 +146,6 @@ export default {
             // 实现压缩文本上传逻辑
         };
 
-        // 初始化 interact.js
         const initializeInteract = () => {
             uploadedImages.value.forEach((image, index) => {
                 if (image.fixed) return;
@@ -111,73 +155,141 @@ export default {
 
                 interact(uploadedImage)
                     .draggable({
-                        listeners: { move: (event) => dragMoveListener(event, index) },
-                        inertia: true,
+                        inertia: false,
                         modifiers: [
                             interact.modifiers.restrict({
-                                restriction: '#adSimulationContainer',
-                                elementRect: { top: 0, left: 0, bottom: 1, right: 1 },
-                                endOnly: true,
-                            }),
+                                restriction: '.ad-content',
+                                elementRect: { top: 0, left: 0, bottom: 1, right: 1 }
+                            })
                         ],
+                        listeners: {
+                            move: (event) => dragMoveListener(event, index)
+                        }
                     })
                     .resizable({
                         edges: { left: true, right: true, bottom: true, top: true },
-                        listeners: {
-                            move(event) {
-                                const { x, y } = event.target.dataset;
-                                const newX = (parseFloat(x) || 0) + event.deltaRect.left;
-                                const newY = (parseFloat(y) || 0) + event.deltaRect.top;
-
-                                Object.assign(event.target.style, {
-                                    width: `${event.rect.width}px`,
-                                    height: `${event.rect.height}px`,
-                                    transform: `translate(${newX}px, ${newY}px)`
-                                });
-
-                                Object.assign(event.target.dataset, { x: newX, y: newY });
-                                uploadedImages.value[index].transform = `translate(${newX}px, ${newY}px)`;
-                            },
-                        },
                         modifiers: [
                             interact.modifiers.restrictEdges({
-                                outer: 'parent',
+                                outer: '.ad-content'
                             }),
                             interact.modifiers.restrictSize({
                                 min: { width: 50, height: 50 },
                                 max: { width: 1000, height: 500 }
-                            }),
+                            })
                         ],
-                        inertia: true,
+                        listeners: {
+                            move: (event) => resizeMoveListener(event, index)
+                        }
                     });
             });
         };
 
+        const resizeMoveListener = (event, index) => {
+            const target = event.target;
+            if (!target) return;
+
+            const x = (parseFloat(target.getAttribute('data-x')) || 0);
+            const y = (parseFloat(target.getAttribute('data-y')) || 0);
+
+            // 更新元素的尺寸
+            Object.assign(target.style, {
+                width: `${event.rect.width}px`,
+                height: `${event.rect.height}px`
+            });
+
+            // 更新图片数据
+            uploadedImages.value[index].width = event.rect.width;
+            uploadedImages.value[index].height = event.rect.height;
+            uploadedImages.value[index].position = { x, y };
+
+            // 更新父元素的位置和尺寸
+            const parent = target.parentElement;
+            if (parent) {
+                parent.style.width = event.rect.width + 'px';
+                parent.style.height = event.rect.height + 'px';
+            }
+        };
+
         function dragMoveListener(event, index) {
             const target = event.target;
+            if (!target) return;
+
             const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
             const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
 
-            if (isOverlapping(target, index)) return;
-
-            target.style.transform = `translate(${x}px, ${y}px)`;
+            // 更新元素的位置
             target.setAttribute('data-x', x);
             target.setAttribute('data-y', y);
-            uploadedImages.value[index].transform = `translate(${x}px, ${y}px)`;
+            
+            // 更新图片数据
+            uploadedImages.value[index].position = { x, y };
+
+            // 更新父元素的位置
+            const parent = target.parentElement;
+            if (parent) {
+                parent.style.left = x + 'px';
+                parent.style.top = y + 'px';
+            }
         }
 
-        const isOverlapping = (target, index) => {
-            const targetRect = target.getBoundingClientRect();
-            return uploadedImages.value.some((image, i) => {
-                if (i === index || image.fixed) return false;
-                const otherImage = document.getElementById(`uploadedImage${i}`);
-                if (!otherImage) return false;
-                const otherRect = otherImage.getBoundingClientRect();
-                return !(targetRect.right < otherRect.left ||
-                         targetRect.left > otherRect.right ||
-                         targetRect.bottom < otherRect.top ||
-                         targetRect.top > otherRect.bottom);
-            });
+        const isOverlapping = (target, index, width = null, height = null) => {
+            if (!target) return false;
+
+            const container = document.querySelector('.ad-content');
+            if (!container) return false;
+
+            try {
+                const targetRect = target.getBoundingClientRect();
+                const containerRect = container.getBoundingClientRect();
+
+                // 使用提供的宽度和高度，或者使用当前元素的尺寸
+                const testRect = {
+                    left: targetRect.left - containerRect.left,
+                    top: targetRect.top - containerRect.top,
+                    right: targetRect.left - containerRect.left + (width || targetRect.width),
+                    bottom: targetRect.top - containerRect.top + (height || targetRect.height)
+                };
+
+                // 检查与已发布广告的重叠
+                const publishedOverlap = publishedAds.value.some(ad => {
+                    if (!ad.position) return false;
+                    return !(testRect.right < ad.position.x ||
+                            testRect.left > ad.position.x + (ad.width || 0) ||
+                            testRect.bottom < ad.position.y ||
+                            testRect.top > ad.position.y + (ad.height || 0));
+                });
+
+                if (publishedOverlap) return true;
+
+                // 检查与其他上传图片的重叠
+                return uploadedImages.value.some((image, i) => {
+                    if (i === index || !image.fixed) return false;
+                    
+                    const otherImage = document.getElementById(`uploadedImage${i}`);
+                    if (!otherImage) return false;
+
+                    try {
+                        const otherRect = otherImage.getBoundingClientRect();
+                        const other = {
+                            left: otherRect.left - containerRect.left,
+                            top: otherRect.top - containerRect.top,
+                            right: otherRect.left - containerRect.left + otherRect.width,
+                            bottom: otherRect.top - containerRect.top + otherRect.height
+                        };
+
+                        return !(testRect.right < other.left ||
+                                testRect.left > other.right ||
+                                testRect.bottom < other.top ||
+                                testRect.top > other.bottom);
+                    } catch (error) {
+                        console.warn('Error checking overlap for image', i, error);
+                        return false;
+                    }
+                });
+            } catch (error) {
+                console.warn('Error in overlap detection:', error);
+                return false;
+            }
         };
 
         const fixImagePosition = (index) => {
@@ -200,13 +312,76 @@ export default {
                     return;
                 }
 
-                // 这里需要实现实际的发布逻辑
+                const lastIndex = uploadedImages.value.length - 1;
+                const imageElement = document.getElementById(`uploadedImage${lastIndex}`);
+                const container = document.querySelector('.ad-content');
+
+                if (!imageElement || !container) {
+                    throw new Error('无法获取图片或容器元素');
+                }
+
+                const rect = imageElement.getBoundingClientRect();
+                const containerRect = container.getBoundingClientRect();
+
+                const position = {
+                    x: rect.left - containerRect.left,
+                    y: rect.top - containerRect.top
+                };
+
+                const adData = {
+                    src: uploadedImages.value[lastIndex].src,
+                    position: position,
+                    width: rect.width,
+                    height: rect.height,
+                    transform: uploadedImages.value[lastIndex].transform,
+                    timestamp: new Date().toISOString()
+                };
+
+                const response = await fetch('http://localhost:3000/api/advertisements', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(adData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('发布失败');
+                }
+
                 alert("广告发布成功！");
                 clearCanvas();
+                fetchPublishedAds();
             } catch (err) {
+                console.error('发布错误:', err);
                 alert(err.message || "发布失败，请重试");
             }
         };
+
+        const getFullImageUrl = (url) => {
+            if (url.startsWith('http')) {
+                return url;
+            }
+            if (url.startsWith('/')) {
+                return `http://localhost:3000${url}`;
+            }
+            return `http://localhost:3000/${url}`;
+        };
+
+        const fetchPublishedAds = async () => {
+            try {
+                const response = await fetch('http://localhost:3000/api/advertisements');
+                const data = await response.json();
+                publishedAds.value = data;
+                console.log('Fetched ads:', data);
+            } catch (err) {
+                console.error('获取已发布广告失败:', err);
+            }
+        };
+
+        onMounted(() => {
+            fetchPublishedAds();
+        });
 
         onBeforeUnmount(() => {
             uploadedImages.value.forEach((_, index) => {
@@ -221,6 +396,8 @@ export default {
             uploadedImages,
             showAdSimulation,
             adCode,
+            publishedAds,
+            getFullImageUrl,
             clearCanvas,
             handleImageUpload,
             handleCompressedUpload,
@@ -309,28 +486,29 @@ body {
 .ad-simulation {
     width: 1000px;
     height: 500px;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px dashed #fff;
-    border-radius: 10px;
-    margin: 0 auto;
+    background-color: rgba(0, 0, 0, 0.5);
     position: relative;
-    overflow: hidden;
+    margin: 20px auto;
+    overflow: visible;
+    border: 2px solid #fff;
+    min-height: 500px;
+    padding: 20px;
 }
 
 .image-container {
     position: absolute;
+    z-index: 1;
+    touch-action: none;
 }
 
 .uploaded-image {
-    max-width: 100%;
-    max-height: 100%;
+    max-width: none;
+    max-height: none;
     object-fit: contain;
     border: 2px solid #fff;
     border-radius: 10px;
     cursor: grab;
+    touch-action: none;
 }
 
 .fix-button {
@@ -378,5 +556,325 @@ body {
 
 .publish-button:hover {
     background-color: #0056b3;
+}
+
+.published-image {
+    object-fit: cover;
+    border-radius: 5px;
+}
+
+.image-container.published {
+    pointer-events: none;
+}
+
+.image-container.current {
+    z-index: 10;
+}
+
+.preview-title {
+    color: #00ff00;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.ad-simulation {
+    width: 1000px;
+    height: 500px;
+    background-color: rgba(0, 0, 0, 0.5);
+    position: relative;
+    margin: 20px auto;
+    overflow: visible;
+    border: 2px solid #fff;
+    min-height: 500px;
+    padding: 20px;
+}
+
+.grid-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    pointer-events: none;
+    min-height: 500px;
+}
+
+.grid-cell {
+    border: 1px dashed rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 1.2em;
+}
+
+.ad-info {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 0.8em;
+}
+
+.preview-info {
+    margin-top: 20px;
+    color: #00ff00;
+    text-align: center;
+}
+
+/* 添加网格参考线 */
+.ad-simulation {
+    background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 50px 50px;
+}
+
+/* 新增预览容器样式 */
+.preview-container {
+    width: 100%;
+    height: calc(100vh - 70px);
+    position: relative;
+    background-color: #000;
+    overflow: hidden;
+}
+
+.ad-content {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #000;
+    min-height: 500px;
+}
+
+.ad-item {
+    position: absolute;
+    touch-action: none;
+}
+
+.ad-item.published {
+    pointer-events: none;
+    border: 2px dashed rgba(255, 255, 255, 0.3);
+}
+
+.ad-item.current {
+    z-index: 10;
+    touch-action: none;
+    border: 2px solid #fff;
+}
+
+.uploaded-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    cursor: move;
+    touch-action: none;
+    user-select: none;
+}
+
+.fix-button {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background-color: rgba(40, 167, 69, 0.8);
+    color: #fff;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    z-index: 11;
+}
+
+.fix-button:hover {
+    background-color: rgba(33, 136, 56, 0.8);
+}
+
+.clear-canvas-button {
+    margin-top: 10px;
+    background-color: #cc0000;
+    color: #fff;
+    border: none;
+    padding: 5px 15px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background-color 0.3s;
+}
+
+.clear-canvas-button:hover {
+    background-color: #990000;
+}
+
+.publish-button {
+    margin-top: 10px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    padding: 5px 15px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background-color 0.3s;
+}
+
+.publish-button:hover {
+    background-color: #0056b3;
+}
+
+.published-image {
+    object-fit: cover;
+    border-radius: 5px;
+}
+
+.image-container.published {
+    pointer-events: none;
+}
+
+.image-container.current {
+    z-index: 10;
+}
+
+.preview-title {
+    color: #00ff00;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.ad-simulation {
+    width: 1000px;
+    height: 500px;
+    background-color: rgba(0, 0, 0, 0.5);
+    position: relative;
+    margin: 20px auto;
+    overflow: visible;
+    border: 2px solid #fff;
+    min-height: 500px;
+    padding: 20px;
+}
+
+.grid-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    pointer-events: none;
+    min-height: 500px;
+}
+
+.grid-cell {
+    border: 1px dashed rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 1.2em;
+}
+
+.ad-info {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 0.8em;
+}
+
+.preview-info {
+    margin-top: 20px;
+    color: #00ff00;
+    text-align: center;
+}
+
+/* 添加网格参考线 */
+.ad-simulation {
+    background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 50px 50px;
+}
+
+/* 新增预览容器样式 */
+.preview-container {
+    width: 100%;
+    height: 600px;
+    overflow: auto;
+    position: relative;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    background-color: rgba(0, 0, 0, 0.3);
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.ad-simulation {
+    width: 1000px;
+    height: 500px;
+    background-color: rgba(0, 0, 0, 0.5);
+    position: relative;
+    margin: 0 auto;
+    border: 2px solid #fff;
+}
+
+/* 添加提示样式 */
+.overlap-warning {
+    position: absolute;
+    background-color: rgba(255, 0, 0, 0.3);
+    border: 2px solid red;
+    pointer-events: none;
+    z-index: 100;
+}
+
+/* 自定义滚动条样式 */
+.preview-container::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.preview-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+}
+
+.preview-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 5px;
+}
+
+.preview-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+/* 添加拖动提示 */
+.preview-container::after {
+    content: '↕️ 滚动查看更多';
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
+    pointer-events: none;
+}
+
+/* 确保父容器有明确的尺寸和定位 */
+.preview-container {
+    width: 100%;
+    height: calc(100vh - 200px);
+    position: relative;
+    overflow: hidden;
+    background-color: #000;
 }
 </style> 

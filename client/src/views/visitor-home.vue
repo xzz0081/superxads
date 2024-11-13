@@ -16,8 +16,24 @@
       </div>
       <!-- 黑色广告区域 -->
       <div class="ad-content">
-        <div class="content-placeholder">
-          黑色区域：访客发布的广告和文档将在此显示
+        <div v-for="(ad, index) in advertisements" 
+             :key="index" 
+             class="ad-item"
+             :style="{
+               position: 'absolute',
+               left: ad.position.x + 'px',
+               top: ad.position.y + 'px',
+               width: ad.width + 'px',
+               height: ad.height + 'px',
+               transform: ad.transform
+             }">
+          <img :src="getFullImageUrl(ad.src)" 
+               :style="{
+                 width: '100%',
+                 height: '100%',
+                 objectFit: 'cover'
+               }" 
+               @click="handleAdClick(ad)" />
         </div>
       </div>
     </div>
@@ -25,11 +41,13 @@
 
 <script>
 import { useRouter } from 'vue-router';
+import { ref, onMounted } from 'vue';
 
 export default {
   name: 'VisitorHome',
   setup() {
     const router = useRouter();
+    const advertisements = ref([]);
 
     const handleButtonClick = (buttonNumber) => {
       alert(`按钮 ${buttonNumber} 被点击了`);
@@ -43,10 +61,40 @@ export default {
       router.push('/send');
     };
 
+    const getFullImageUrl = (url) => {
+      if (url.startsWith('http')) {
+        return url;
+      }
+      return `http://localhost:3000${url}`;
+    };
+
+    const fetchAdvertisements = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/advertisements');
+        const data = await response.json();
+        advertisements.value = data;
+      } catch (err) {
+        console.error('获取广告失败:', err);
+      }
+    };
+
+    const handleAdClick = (ad) => {
+      if (ad.link) {
+        window.open(ad.link, '_blank');
+      }
+    };
+
+    onMounted(() => {
+      fetchAdvertisements();
+    });
+
     return {
       handleButtonClick,
       handlePlaneClick,
-      handleSendAd
+      handleSendAd,
+      advertisements,
+      handleAdClick,
+      getFullImageUrl
     };
   }
 };
@@ -148,17 +196,27 @@ body {
 .ad-content {
   flex-grow: 1;
   background-color: #000;
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 70px); /* 减去header的高度 */
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  padding: 20px;
-  overflow-y: auto;
 }
 
-.content-placeholder {
-  text-align: center;
-  font-size: 1.5em;
-  padding: 10px;
+.ad-item {
+  position: absolute;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.ad-item:hover {
+  transform: scale(1.02);
+}
+
+.ad-item img {
+  border-radius: 5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 </style> 
