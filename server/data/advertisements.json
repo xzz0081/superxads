@@ -358,5 +358,37 @@
     "width": 1002.5,
     "height": 50,
     "timestamp": "2024-11-13T14:13:10.105Z"
+  },
+  {
+    "src": "http://localhost:3000/uploads/image-1731507402562-957974369.png",
+    "position": {
+      "x": 623.3333129882812,
+      "y": 264.9999694824219
+    },
+    "width": 199.9921875,
+    "height": 117.984375,
+    "timestamp": "2024-11-13T14:17:33.408Z"
+  },
+  {
+    "src": "http://localhost:3000/uploads/image-1731507617990-661411475.png",
+    "position": {
+      "x": 230,
+      "y": 1081.25
+    },
+    "width": 500,
+    "height": 250,
+    "timestamp": "2024-11-13T14:21:34.854Z",
+    "link": "www.baidu.com"
+  },
+  {
+    "src": "http://localhost:3000/uploads/image-1731507658423-707376917.png",
+    "position": {
+      "x": 0,
+      "y": 1276.25
+    },
+    "width": 163.75,
+    "height": 500,
+    "timestamp": "2024-11-13T14:21:34.879Z",
+    "link": "www.52avav.com"
   }
 ]

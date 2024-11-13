@@ -34,9 +34,12 @@
         <div v-if="showAdSimulation" class="preview-section">
             <h3 class="preview-title">首页广告位预览</h3>
             <div class="preview-container">
-                <button class="preview-jump-button" @click="scrollToUnfixed">
-                    <span class="jump-icon">↓</span>
-                </button>
+                <div class="jump-button-container">
+                    <button class="preview-jump-button" @click="scrollToUnfixed">
+                        <span class="jump-icon">↓</span>
+                    </button>
+                    <span class="jump-button-tooltip">跳转到未固定广告</span>
+                </div>
                 
                 <div class="ad-content">
                     <!-- 显示已发布的广告 -->
@@ -78,11 +81,22 @@
                                  height: '100%',
                                  objectFit: 'cover'
                              }" />
-                        <button v-if="!image.fixed" 
-                                class="fix-button" 
-                                @click="fixImagePosition(index)">
-                            固定位置
-                        </button>
+                        <div class="button-group">
+                            <button v-if="!image.hasLink" 
+                                    class="add-link-button" 
+                                    @click="addLink(index)">
+                                附加链接
+                            </button>
+                            <div v-else class="link-info">
+                                <span class="link-text">已添加链接</span>
+                                <button class="remove-link-button" @click="removeLink(index)">删除链接</button>
+                            </div>
+                            <button v-if="!image.fixed" 
+                                    class="fix-button" 
+                                    @click="fixImagePosition(index)">
+                                固定位置
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -135,7 +149,9 @@ export default {
                         fixed: false,
                         position: { x: 0, y: 0 },
                         width: 500,
-                        height: 250
+                        height: 250,
+                        hasLink: false,
+                        link: null
                     });
                     
                     showAdSimulation.value = true;
@@ -394,7 +410,8 @@ export default {
                         width: image.width,
                         height: image.height,
                         transform: image.transform,
-                        timestamp: new Date().toISOString()
+                        timestamp: new Date().toISOString(),
+                        link: image.link
                     };
 
                     const response = await fetch('http://localhost:3000/api/advertisements', {
@@ -498,6 +515,19 @@ export default {
             }
         };
 
+        const addLink = (index) => {
+            const link = prompt('请输入链接地址：');
+            if (link) {
+                uploadedImages.value[index].link = link;
+                uploadedImages.value[index].hasLink = true;
+            }
+        };
+
+        const removeLink = (index) => {
+            uploadedImages.value[index].link = null;
+            uploadedImages.value[index].hasLink = false;
+        };
+
         onMounted(() => {
             fetchPublishedAds();
         });
@@ -523,6 +553,8 @@ export default {
             publishAd,
             fixImagePosition,
             scrollToUnfixed,
+            addLink,
+            removeLink,
         };
     }
 };
@@ -860,9 +892,7 @@ body {
 }
 
 .preview-jump-button {
-    position: absolute;
-    top: 20px;
-    right: 20px;
+    position: static; /* 修改为static，因为现在在container中定位 */
     width: 40px;
     height: 40px;
     background-color: #ff4444;
@@ -893,5 +923,70 @@ body {
 
 .preview-jump-button:hover .jump-icon {
     transform: rotate(360deg);
+}
+
+.jump-button-container {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 1000;
+}
+
+.jump-button-tooltip {
+    color: #fff;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.button-group {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    display: flex;
+    gap: 10px;
+    z-index: 11;
+}
+
+.add-link-button, .remove-link-button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+.remove-link-button {
+    background-color: #f44336;
+}
+
+.add-link-button:hover {
+    background-color: #45a049;
+}
+
+.remove-link-button:hover {
+    background-color: #da190b;
+}
+
+.link-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+.link-text {
+    color: #4CAF50;
+    font-size: 12px;
 }
 </style> 

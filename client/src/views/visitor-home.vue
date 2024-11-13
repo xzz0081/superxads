@@ -85,7 +85,8 @@ export default {
 
     const handleAdClick = (ad) => {
       if (ad.link) {
-        window.open(ad.link, '_blank');
+        const url = ad.link.startsWith('http') ? ad.link : `https://${ad.link}`;
+        window.open(url, '_blank');
       }
     };
 
