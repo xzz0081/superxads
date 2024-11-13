@@ -34,6 +34,10 @@
         <div v-if="showAdSimulation" class="preview-section">
             <h3 class="preview-title">首页广告位预览</h3>
             <div class="preview-container">
+                <button class="preview-jump-button" @click="scrollToUnfixed">
+                    <span class="jump-icon">↓</span>
+                </button>
+                
                 <div class="ad-content">
                     <!-- 显示已发布的广告 -->
                     <div v-for="(ad, index) in publishedAds" 
@@ -465,6 +469,35 @@ export default {
             }
         };
 
+        const scrollToUnfixed = () => {
+            const previewContainer = document.querySelector('.preview-container');
+            if (previewContainer) {
+                // 找到第一个未固定的广告
+                const unfixedAdIndex = uploadedImages.value.findIndex(img => !img.fixed);
+                
+                if (unfixedAdIndex !== -1) {
+                    // 如果找到未固定的广告，滚动到它的位置
+                    const unfixedAd = uploadedImages.value[unfixedAdIndex];
+                    const scrollPosition = unfixedAd.position.y + unfixedAd.height + 100; // 额外加100px空间
+                    
+                    previewContainer.scrollTo({
+                        top: scrollPosition,
+                        behavior: 'smooth'
+                    });
+                } else {
+                    // 如果所有广告都已固定，滚动到最后一个广告的下方
+                    const lastAd = uploadedImages.value[uploadedImages.value.length - 1];
+                    if (lastAd) {
+                        const scrollPosition = lastAd.position.y + lastAd.height + 100;
+                        previewContainer.scrollTo({
+                            top: scrollPosition,
+                            behavior: 'smooth'
+                        });
+                    }
+                }
+            }
+        };
+
         onMounted(() => {
             fetchPublishedAds();
         });
@@ -488,7 +521,8 @@ export default {
             handleImageUpload,
             handleCompressedUpload,
             publishAd,
-            fixImagePosition
+            fixImagePosition,
+            scrollToUnfixed,
         };
     }
 };
@@ -734,8 +768,8 @@ body {
 
 .ad-content {
     position: relative;
-    width: 3000px !important; /* 固定宽度匹配首页 */
-    min-height: 3000px; /* 改为最小高度，允许无限延展 */
+    width: 3000px !important; /* 改回固定宽度，与首页保持一致 */
+    min-height: 3000px; /* 保持高度可以无限延展 */
     background-color: #000;
     margin: 0 auto;
 }
@@ -780,7 +814,7 @@ body {
 
 /* 添加滚动提示 */
 .preview-container::after {
-    content: '← → ↑ ↓ 可无限向下滚动添加广告';
+    content: '↑ ↓ 可无限向下滚动添加广告';  /* 更新提示文本，去掉左右滚动提示 */
     position: fixed;
     bottom: 20px;
     right: 20px;
@@ -823,5 +857,41 @@ body {
 .preview-container {
     max-height: none;
     max-width: none;
+}
+
+.preview-jump-button {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    background-color: #ff4444;
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+.preview-jump-button:hover {
+    background-color: #ff6666;
+    transform: scale(1.1);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+.jump-icon {
+    display: inline-block;
+    transform: rotate(0deg);
+    transition: transform 0.3s ease;
+}
+
+.preview-jump-button:hover .jump-icon {
+    transform: rotate(360deg);
 }
 </style> 

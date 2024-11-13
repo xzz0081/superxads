@@ -16,6 +16,9 @@
       </div>
       <!-- 黑色广告区域 -->
       <div class="ad-content">
+        <button class="jump-button" @click="scrollToUnfixed">
+          <span class="jump-icon">↓</span>
+        </button>
         <div class="ad-scroll-container">
             <div v-for="(ad, index) in advertisements" 
                  :key="index" 
@@ -86,6 +89,22 @@ export default {
       }
     };
 
+    const scrollToUnfixed = () => {
+      // 找到第一个未固定位置的广告
+      const unfixedAd = advertisements.value.find(ad => 
+        !ad.position || (ad.position.x === undefined || ad.position.y === undefined)
+      );
+
+      if (unfixedAd) {
+        // 如果找到未固定的广告，滚动到其位置
+        const element = document.querySelector('.ad-content');
+        element.scrollTo({
+          top: unfixedAd.position?.y || 0,
+          behavior: 'smooth'
+        });
+      }
+    };
+
     onMounted(() => {
       fetchAdvertisements();
     });
@@ -96,7 +115,8 @@ export default {
       handleSendAd,
       advertisements,
       handleAdClick,
-      getFullImageUrl
+      getFullImageUrl,
+      scrollToUnfixed,
     };
   }
 };
@@ -209,18 +229,21 @@ body {
 
 .ad-scroll-container {
   position: relative;
-  width: 3000px;
+  width: 100%;
+  max-width: 3000px;
   min-height: 100%;
   height: auto;
   padding: 20px;
   background-color: #000;
   flex-grow: 1;
+  margin: 0 auto;
 }
 
 .ad-item {
   position: absolute;
   cursor: pointer;
   transition: transform 0.3s ease;
+  max-width: 100%;
 }
 
 .ad-item:hover {
@@ -230,6 +253,8 @@ body {
 .ad-item img {
   border-radius: 5px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  max-width: 100%;
+  height: auto;
 }
 
 .ad-content::-webkit-scrollbar {
@@ -253,5 +278,41 @@ body {
 
 .ad-content::-webkit-scrollbar-corner {
   background: rgba(255, 255, 255, 0.1);
+}
+
+.jump-button {
+  position: fixed;
+  top: 100px; /* 调整位置，确保在头部导航栏下方 */
+  right: 30px;
+  width: 50px;
+  height: 50px;
+  background-color: #ff4444;
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  transition: all 0.3s ease;
+}
+
+.jump-button:hover {
+  background-color: #ff6666;
+  transform: scale(1.1);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+.jump-icon {
+  display: inline-block;
+  transform: rotate(0deg);
+  transition: transform 0.3s ease;
+}
+
+.jump-button:hover .jump-icon {
+  transform: rotate(360deg);
 }
 </style> 

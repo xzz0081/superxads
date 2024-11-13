@@ -318,5 +318,45 @@
     "width": 283.75,
     "height": 252.5,
     "timestamp": "2024-11-13T13:53:19.597Z"
+  },
+  {
+    "src": "http://localhost:3000/uploads/image-1731506491399-524950146.png",
+    "position": {
+      "x": 100,
+      "y": 767.5
+    },
+    "width": 412.5,
+    "height": 252.5,
+    "timestamp": "2024-11-13T14:03:01.158Z"
+  },
+  {
+    "src": "http://localhost:3000/uploads/image-1731506523039-282830677.png",
+    "position": {
+      "x": 2113.75,
+      "y": 0
+    },
+    "width": 381.25,
+    "height": 257.5,
+    "timestamp": "2024-11-13T14:03:01.190Z"
+  },
+  {
+    "src": "http://localhost:3000/uploads/image-1731506539262-856286297.png",
+    "position": {
+      "x": 2497.5,
+      "y": 0
+    },
+    "width": 500,
+    "height": 250,
+    "timestamp": "2024-11-13T14:03:01.197Z"
+  },
+  {
+    "src": "http://localhost:3000/uploads/image-1731507155482-936678775.png",
+    "position": {
+      "x": 100,
+      "y": 1022.5
+    },
+    "width": 1002.5,
+    "height": 50,
+    "timestamp": "2024-11-13T14:13:10.105Z"
   }
 ]
