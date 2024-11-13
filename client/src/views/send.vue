@@ -34,7 +34,7 @@
         <div v-if="showAdSimulation" class="preview-section">
             <h3 class="preview-title">首页广告位预览</h3>
             <div class="preview-container">
-                <div class="ad-content" style="width: 100%; height: calc(100vh - 70px);">
+                <div class="ad-content">
                     <!-- 显示已发布的广告 -->
                     <div v-for="(ad, index) in publishedAds" 
                          :key="'published-' + index" 
@@ -734,77 +734,27 @@ body {
 
 .ad-content {
     position: relative;
+    width: 3000px !important; /* 固定宽度匹配首页 */
+    min-height: 3000px; /* 改为最小高度，允许无限延展 */
     background-color: #000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     margin: 0 auto;
-    /* 移除固定宽高，使用与首页相同的尺寸 */
 }
 
+/* 确保图片位置精确匹配 */
 .ad-item {
     position: absolute;
     touch-action: none;
-    margin: 1px;
+    transform-origin: 0 0;
 }
 
-.ad-item.published {
-    pointer-events: none;
-    border: 2px dashed rgba(255, 255, 255, 0.3);
-}
-
-.ad-item.current {
-    z-index: 10;
-}
-
-.uploaded-image {
+.ad-item img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    cursor: move;
-    touch-action: none;
-    user-select: none;
-    min-width: 50px;
-    min-height: 50px;
+    display: block;
 }
 
-/* 修改固定按钮的样式 */
-.fix-button {
-    position: absolute;
-    background-color: rgba(40, 167, 69, 0.8);
-    color: #fff;
-    border: none;
-    padding: 5px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-    z-index: 11;
-    white-space: nowrap;
-    transition: all 0.3s ease;
-}
-
-/* 根据图片尺寸调整按钮位置的样式 */
-.ad-item.current[style*="width: 100px"] .fix-button,
-.ad-item.current[style*="width: 50px"] .fix-button {
-    right: -80px;
-    bottom: 0;
-}
-
-/* 正常尺寸图片的按钮位置 */
-.ad-item.current:not([style*="width: 100px"]):not([style*="width: 50px"]) .fix-button {
-    right: 10px;
-    bottom: 10px;
-}
-
-/* 添加提示样式 */
-.overlap-warning {
-    position: absolute;
-    background-color: rgba(255, 0, 0, 0.3);
-    border: 2px solid red;
-    pointer-events: none;
-    z-index: 100;
-}
-
-/* 自定义滚动条样式 */
+/* 优化滚动条样式 */
 .preview-container::-webkit-scrollbar {
     width: 12px;
     height: 12px;
@@ -818,7 +768,6 @@ body {
 .preview-container::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.3);
     border-radius: 6px;
-    border: 2px solid rgba(0, 0, 0, 0.2);
 }
 
 .preview-container::-webkit-scrollbar-thumb:hover {
@@ -826,27 +775,53 @@ body {
 }
 
 .preview-container::-webkit-scrollbar-corner {
-    background: transparent;
+    background: rgba(255, 255, 255, 0.1);
 }
 
-/* 添加拖动提示 */
+/* 添加滚动提示 */
 .preview-container::after {
-    content: '↕️ 滚动查看更多';
-    position: absolute;
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
+    content: '← → ↑ ↓ 可无限向下滚动添加广告';
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
     color: rgba(255, 255, 255, 0.5);
     font-size: 12px;
+    padding: 5px 10px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 4px;
     pointer-events: none;
+    z-index: 1000;
 }
 
-/* 确保父容器有明确的尺寸和定位 */
-.preview-container {
-    width: 100%;
-    height: calc(100vh - 200px);
+/* 确保内容区域居中 */
+.preview-section {
+    text-align: center;
+    margin-top: 20px;
     position: relative;
+    width: 100%;
     overflow: hidden;
-    background-color: #000;
+}
+
+/* 调整预览标题样式 */
+.preview-title {
+    color: #00ff00;
+    text-align: center;
+    margin-bottom: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background-color: rgba(0, 0, 0, 0.8);
+    padding: 10px;
+}
+
+/* 修改容器内边距，确保有足够的滚动空间 */
+.container {
+    padding-bottom: 50px;
+}
+
+/* 移除可能影响滚动的限制 */
+.preview-container {
+    max-height: none;
+    max-width: none;
 }
 </style> 

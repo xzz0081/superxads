@@ -268,5 +268,55 @@
     "width": 500,
     "height": 250,
     "timestamp": "2024-11-13T13:19:50.410Z"
+  },
+  {
+    "src": "http://localhost:3000/uploads/image-1731505441773-38654825.png",
+    "position": {
+      "x": 476.25,
+      "y": 376.25
+    },
+    "width": 50,
+    "height": 262.5,
+    "timestamp": "2024-11-13T13:44:25.535Z"
+  },
+  {
+    "src": "http://localhost:3000/uploads/image-1731505857651-367085225.png",
+    "position": {
+      "x": 532.5,
+      "y": 380
+    },
+    "width": 118.75,
+    "height": 500,
+    "timestamp": "2024-11-13T13:51:52.363Z"
+  },
+  {
+    "src": "http://localhost:3000/uploads/image-1731505886413-363679581.png",
+    "position": {
+      "x": 0,
+      "y": 768.75
+    },
+    "width": 91.25,
+    "height": 500,
+    "timestamp": "2024-11-13T13:51:52.391Z"
+  },
+  {
+    "src": "http://localhost:3000/uploads/image-1731505934450-313940002.png",
+    "position": {
+      "x": 1036.25,
+      "y": 516.25
+    },
+    "width": 337.5,
+    "height": 252.5,
+    "timestamp": "2024-11-13T13:53:19.570Z"
+  },
+  {
+    "src": "http://localhost:3000/uploads/image-1731505951357-630754565.png",
+    "position": {
+      "x": 1818.75,
+      "y": 0
+    },
+    "width": 283.75,
+    "height": 252.5,
+    "timestamp": "2024-11-13T13:53:19.597Z"
   }
 ]

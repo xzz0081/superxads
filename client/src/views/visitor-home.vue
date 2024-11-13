@@ -16,24 +16,26 @@
       </div>
       <!-- 黑色广告区域 -->
       <div class="ad-content">
-        <div v-for="(ad, index) in advertisements" 
-             :key="index" 
-             class="ad-item"
-             :style="{
-               position: 'absolute',
-               left: ad.position.x + 'px',
-               top: ad.position.y + 'px',
-               width: ad.width + 'px',
-               height: ad.height + 'px',
-               transform: ad.transform
-             }">
-          <img :src="getFullImageUrl(ad.src)" 
-               :style="{
-                 width: '100%',
-                 height: '100%',
-                 objectFit: 'cover'
-               }" 
-               @click="handleAdClick(ad)" />
+        <div class="ad-scroll-container">
+            <div v-for="(ad, index) in advertisements" 
+                 :key="index" 
+                 class="ad-item"
+                 :style="{
+                   position: 'absolute',
+                   left: ad.position.x + 'px',
+                   top: ad.position.y + 'px',
+                   width: ad.width + 'px',
+                   height: ad.height + 'px',
+                   transform: ad.transform
+                 }">
+                <img :src="getFullImageUrl(ad.src)" 
+                     :style="{
+                       width: '100%',
+                       height: '100%',
+                       objectFit: 'cover'
+                     }" 
+                     @click="handleAdClick(ad)" />
+            </div>
         </div>
       </div>
     </div>
@@ -198,11 +200,21 @@ body {
   background-color: #000;
   position: relative;
   width: 100%;
-  height: calc(100vh - 70px); /* 减去header的高度 */
-  overflow: hidden;
+  min-height: calc(100vh - 70px);
+  height: auto;
+  overflow: auto;
   display: flex;
-  align-items: center;
   justify-content: center;
+}
+
+.ad-scroll-container {
+  position: relative;
+  width: 3000px;
+  min-height: 100%;
+  height: auto;
+  padding: 20px;
+  background-color: #000;
+  flex-grow: 1;
 }
 
 .ad-item {
@@ -218,5 +230,28 @@ body {
 .ad-item img {
   border-radius: 5px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.ad-content::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.ad-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+}
+
+.ad-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+}
+
+.ad-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.ad-content::-webkit-scrollbar-corner {
+  background: rgba(255, 255, 255, 0.1);
 }
 </style> 
