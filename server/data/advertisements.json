@@ -390,5 +390,38 @@
     "height": 500,
     "timestamp": "2024-11-13T14:21:34.879Z",
     "link": "www.52avav.com"
+  },
+  {
+    "src": "http://localhost:3000/uploads/image-1731507899169-958542729.png",
+    "position": {
+      "x": 735,
+      "y": 1078.75
+    },
+    "width": 218.75,
+    "height": 61.25,
+    "timestamp": "2024-11-13T14:25:21.124Z",
+    "link": "www.by69.vom"
+  },
+  {
+    "src": "http://localhost:3000/uploads/image-1731507980235-975573105.png",
+    "position": {
+      "x": 0,
+      "y": 309
+    },
+    "width": 274,
+    "height": 193,
+    "timestamp": "2024-11-13T14:26:38.099Z",
+    "link": "66666660"
+  },
+  {
+    "src": "http://localhost:3000/uploads/image-1731508089034-356759569.png",
+    "position": {
+      "x": 653,
+      "y": 391.5
+    },
+    "width": 226.9921875,
+    "height": 456.984375,
+    "timestamp": "2024-11-13T14:28:36.290Z",
+    "link": "6666666666666666"
   }
 ]

@@ -1,5 +1,12 @@
 <template>
     <div class="container">
+        <!-- 添加返回首页按钮 -->
+        <div class="back-home-container">
+            <button class="back-home-button" @click="goHome">
+                返回首页
+            </button>
+        </div>
+
         <!-- 背景视频（可选） -->
         <video autoplay muted loop id="background-video">
             <source src="/videos/10.8.mp4" type="video/mp4">
@@ -81,15 +88,17 @@
                                  height: '100%',
                                  objectFit: 'cover'
                              }" />
-                        <div class="button-group">
-                            <button v-if="!image.hasLink" 
-                                    class="add-link-button" 
-                                    @click="addLink(index)">
-                                附加链接
-                            </button>
-                            <div v-else class="link-info">
-                                <span class="link-text">已添加链接</span>
-                                <button class="remove-link-button" @click="removeLink(index)">删除链接</button>
+                        <div class="image-buttons">
+                            <div class="link-buttons">
+                                <button v-if="!image.hasLink" 
+                                        class="add-link-button" 
+                                        @click="addLink(index)">
+                                    附加链接
+                                </button>
+                                <div v-else class="link-info">
+                                    <span class="link-text">已添加链接</span>
+                                    <button class="remove-link-button" @click="removeLink(index)">删除链接</button>
+                                </div>
                             </div>
                             <button v-if="!image.fixed" 
                                     class="fix-button" 
@@ -107,6 +116,7 @@
 <script>
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import interact from 'interactjs';
+import { useRouter } from 'vue-router';
 
 export default {
     name: 'SendPage',
@@ -115,6 +125,7 @@ export default {
         const showAdSimulation = ref(false);
         const adCode = ref('');
         const publishedAds = ref([]);
+        const router = useRouter();
 
         const clearCanvas = () => {
             showAdSimulation.value = false;
@@ -528,6 +539,11 @@ export default {
             uploadedImages.value[index].hasLink = false;
         };
 
+        // 添加返回首页方法
+        const goHome = () => {
+            router.push('/visitor-home');
+        };
+
         onMounted(() => {
             fetchPublishedAds();
         });
@@ -555,6 +571,7 @@ export default {
             scrollToUnfixed,
             addLink,
             removeLink,
+            goHome,
         };
     }
 };
@@ -988,5 +1005,103 @@ body {
 .link-text {
     color: #4CAF50;
     font-size: 12px;
+}
+
+/* 修改按钮组样式 */
+.image-buttons {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 11;
+}
+
+.link-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.add-link-button, .remove-link-button, .fix-button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    min-width: 80px;
+}
+
+.fix-button {
+    background-color: #2196F3;
+}
+
+.remove-link-button {
+    background-color: #f44336;
+}
+
+.add-link-button:hover {
+    background-color: #45a049;
+}
+
+.remove-link-button:hover {
+    background-color: #da190b;
+}
+
+.fix-button:hover {
+    background-color: #1976D2;
+}
+
+.link-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 5px;
+    border-radius: 4px;
+}
+
+.link-text {
+    color: #4CAF50;
+    font-size: 12px;
+    text-align: center;
+}
+
+/* 确保顶部的发布和清空按钮样式不变 */
+.upload-section .button-group {
+    position: static;
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 10px;
+}
+
+.back-home-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1001; /* 确保在其他元素之上 */
+}
+
+.back-home-button {
+    background: linear-gradient(135deg, #00c6ff, #0072ff);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 14px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.back-home-button:hover {
+    background: linear-gradient(135deg, #0072ff, #00c6ff);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
 }
 </style> 
